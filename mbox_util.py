@@ -1,13 +1,18 @@
 """This program is a tool for archiving old mail in mbox mailboxes. I neglected
 my mailbox on sdf.org for years and wrote this to clean it up so pine wouldn't
-barf all over my huge inbox because it's high time I start using sdf regularly
+barf all over my huge inbox because it's high time I start using SDF regularly
 again! As a cronjob, this could be useful to regularly move old mail to another
 mbox.
+
+Backup your email before messing with this!!! I'm not responsible for hosing
+your mbox...
+
 07/11/2015 - transfix@gmail.com
 
 Change Log
 ----------
 07/11/2015 - start
+03/10/2016 - adding delete command
 
 TODO
 ----
@@ -26,10 +31,10 @@ def process_args():
                                                   older than a specified number of days.""")
   parser.add_argument('command', help='One of "list," "copy," or "move."')
   parser.add_argument('source_mbox', help='mbox file to list, copy or move messages from')
-  parser.add_argument('target_mbox', nargs='?',
-                      help='mbox file where old messages are copied or moved to')
   parser.add_argument('older_than', nargs='?', default=0, type=int,
                       help="Operate on mail older than this number of days. Default is 0")
+  parser.add_argument('target_mbox', nargs='?',
+                      help='mbox file where old messages are copied or moved to')
   args = vars(parser.parse_args())
   return args
 
@@ -61,7 +66,11 @@ def main():
     t = email.utils.parsedate(message['date'])
     if t == None:
       print ('-'*80)
-      print "malformed email: ", message
+      if cmd == "delete":
+        print "Removing malformed email:", message_key
+        source_mb.remove(message_key)
+      else:
+        print "malformed email (missing proper date field): ", message_key
       continue
     date = datetime.datetime.fromtimestamp(time.mktime(t))
     td = now - date
@@ -77,7 +86,7 @@ def main():
       else:
         if load_target_mb:
           target_mb.add(message)
-        if cmd == "move":
+        if cmd == "move" or cmd == "delete":
           source_mb.remove(message_key)
 
   source_mb.flush()
